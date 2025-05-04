@@ -12,27 +12,54 @@
   <script>
     let mediaRecorder;
     let audioChunks = [];
-
+  
     async function startRecording() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorder = new MediaRecorder(stream);
-
+      audioChunks = []; // Reset each time
+  
       mediaRecorder.ondataavailable = event => {
         audioChunks.push(event.data);
       };
-
+  
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
         const audioUrl = URL.createObjectURL(audioBlob);
         document.getElementById("audioPlayback").src = audioUrl;
+  
+        const formData = new FormData();
+        formData.append("audio_data", audioBlob, "guest_message.wav");
+  
+        // Upload to Flask server
+        fetch("/save", {
+          method: "POST",
+          body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.url) {
+            console.log("Uploaded to S3 at:", data.url);
+            alert("Message uploaded successfully!");
+          } else {
+            console.error("Upload error:", data.error);
+            alert("Failed to upload: " + data.error);
+          }
+        })
+        .catch(err => {
+          console.error("Fetch error:", err);
+          alert("Upload failed.");
+        });
       };
-
+  
       mediaRecorder.start();
     }
-
+  
     function stopRecording() {
-      mediaRecorder.stop();
+      if (mediaRecorder) {
+        mediaRecorder.stop();
+      }
     }
   </script>
+  
 </body>
 </html>
