@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Audio Guestbook</title>
+</head>
+<body>
+  <h1>Welcome to Our Audio Guestbook</h1>
+  <button onclick="startRecording()">Record Message</button>
+  <button onclick="stopRecording()">Stop</button>
+  <audio id="audioPlayback" controls></audio>
+
+  <script>
+    let mediaRecorder;
+    let audioChunks = [];
+
+    async function startRecording() {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.ondataavailable = event => {
+        audioChunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        document.getElementById("audioPlayback").src = audioUrl;
+      };
+
+      mediaRecorder.start();
+    }
+
+    function stopRecording() {
+      mediaRecorder.stop();
+    }
+  </script>
+</body>
+</html>
