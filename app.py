@@ -9,6 +9,9 @@ s3 = boto3.client('s3')
 
 BUCKET_NAME = "kayla-audio-guestbook"
 
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -19,7 +22,7 @@ def save():
     unique_id = uuid.uuid4().hex[:6]
     file = request.files['audio_data']
     filename =  f"guest_message_{timestamp}_{unique_id}.wav"
-    local_path = os.path.join("uploads", filename)
+    local_path = os.path.join(UPLOAD_FOLDER, filename)
     file.save(local_path)
 
 
@@ -34,4 +37,4 @@ def save():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port = 5000, host="0.0.0.0")

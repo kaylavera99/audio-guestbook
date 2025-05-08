@@ -12,11 +12,14 @@
   <script>
     let mediaRecorder;
     let audioChunks = [];
+
+
+    
   
     async function startRecording() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorder = new MediaRecorder(stream);
-      audioChunks = []; // Reset each time
+      audioChunks = []; 
   
       mediaRecorder.ondataavailable = event => {
         audioChunks.push(event.data);
@@ -26,11 +29,12 @@
         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
         const audioUrl = URL.createObjectURL(audioBlob);
         document.getElementById("audioPlayback").src = audioUrl;
+        console.log("Recording stopped, audio set");
   
         const formData = new FormData();
         formData.append("audio_data", audioBlob, "guest_message.wav");
   
-        // Upload to Flask server
+        // Uploading to Flask server / s3 bucket
         fetch("/save", {
           method: "POST",
           body: formData,
@@ -53,6 +57,8 @@
   
       mediaRecorder.start();
     }
+
+
   
     function stopRecording() {
       if (mediaRecorder) {
