@@ -1,23 +1,17 @@
 import RPi.GPIO as GPIO
 import time
 
-# Use BCM numbering
 GPIO.setmode(GPIO.BCM)
+GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-# Set up GPIO17 as input with internal pull-up resistor
-GPIO_PIN = 17
-GPIO.setup(GPIO_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
-print("Monitoring phone lever switch. Press Ctrl+C to stop.")
+print("Starting lever test. Press Ctrl+C to stop.")
 
 try:
     while True:
-        if GPIO.input(GPIO_PIN) == GPIO.LOW:
-            print("Phone answered")
+        if GPIO.input(17) == GPIO.LOW:
+            print("Phone picked up (HIGH)")
         else:
-            print("Phone hung up")
-        time.sleep(0.5)  # prevent spamming output
+            print("Phone hung up (LOW)")
+        time.sleep(1)
 except KeyboardInterrupt:
-    print("Exiting...")
-finally:
     GPIO.cleanup()
