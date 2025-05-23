@@ -8,4 +8,6 @@ templates/
 lever-test.py
 wav-playback-test.py
 
-
+# Ignore venv and pycachce
+venv/
+__pycache__/
