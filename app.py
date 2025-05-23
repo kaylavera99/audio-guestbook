@@ -1,40 +1,72 @@
-from flask import Flask, render_template, request, jsonify
-import boto3
+import RPi.GPIO as GPIO
+import time
+import simpleaudio as sa
+import sounddevice as sd
+import soundfile as sf
 import os
+import boto3
 import uuid
 from datetime import datetime
-app = Flask(__name__)
+
+# --- Setup ---
+LEVER_PIN = 17
+UPLOAD_FOLDER = "uploads"
+BUCKET_NAME = "kayla-audio-guestbook"  # ← Replace this with your actual S3 bucket name
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(LEVER_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 s3 = boto3.client('s3')
 
-BUCKET_NAME = "kayla-audio-guestbook"
+print("Waiting for phone to be picked up...")
 
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+def record_audio(filename, duration=10, fs=44100):
+    print("Recording started...")
+    audio = sd.rec(int(duration * fs), samplerate=fs, channels=1)
+    sd.wait()
+    sf.write(filename, audio, fs)
+    print("Recording finished.")
 
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-@app.route("/save", methods=["POST"])
-def save():
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    unique_id = uuid.uuid4().hex[:6]
-    file = request.files['audio_data']
-    filename =  f"guest_message_{timestamp}_{unique_id}.wav"
-    local_path = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(local_path)
-
-
+def upload_to_s3(filename):
     try:
-        s3.upload_file(local_path, BUCKET_NAME, filename)
-        s3_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{filename}"
-        return jsonify({"message": "File uploaded successfully", "url": s3_url}), 200
+        s3.upload_file(filename, BUCKET_NAME, os.path.basename(filename))
+        print(f"Uploaded {filename} to S3.")
     except Exception as e:
-        return jsonify({"error":str(e)}), 500
+        print(f"Upload failed: {e}")
 
-    
+try:
+    while True:
+        if GPIO.input(LEVER_PIN) == GPIO.LOW:
+            print("Phone picked up - playing greeting.")
+            wave_obj = sa.WaveObject.from_wave_file("Greeting.wav")
+            play_obj = wave_obj.play()
+            play_obj.wait_done()
 
+            print("Playing beep")
+            beep_obj = sa.WaveObject.from_wave_file("Beep.wav")
+            play_obj2 = beep_obj.play()
+            play_obj2.wait_done()
 
-if __name__ == "__main__":
-    app.run(debug=True, port = 5000, host="0.0.0.0")
+            time.sleep(1)
+
+            # Start recording
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            unique_id = uuid.uuid4().hex[:6]
+            if not os.path.exists(UPLOAD_FOLDER):
+                os.makedirs(UPLOAD_FOLDER)
+            filename = f"{UPLOAD_FOLDER}/guest_message_{timestamp}_{unique_id}.wav"
+            record_audio(filename)
+            upload_to_s3(filename)
+
+            # Wait until phone is hung up
+            print("Waiting for phone to hang up...")
+            while GPIO.input(LEVER_PIN) == GPIO.LOW:
+                time.sleep(0.5)
+
+        else:
+            print("Phone is on the hook.")
+            time.sleep(0.5)
+
+except KeyboardInterrupt:
+    GPIO.cleanup()
+    print("Exiting gracefully.")
