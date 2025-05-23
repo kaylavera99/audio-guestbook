@@ -1,0 +1,11 @@
+# Ignore records directory where local records stored
+uploads/
+
+#Ignore index.html template set up
+templates/
+
+# Ignore test scripts
+lever-test.py
+wav-playback-test.py
+
+
