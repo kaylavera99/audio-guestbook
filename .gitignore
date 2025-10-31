@@ -1,12 +1,14 @@
 # Ignore records directory where local records stored
 uploads/
 
-#Ignore index.html template set up
+#Ignore index.html template set up until refined
 templates/
+index.html
 
 # Ignore test scripts
 lever-test.py
 wav-playback-test.py
+gpio_test.py
 
 # Ignore venv and pycachce
 venv/
